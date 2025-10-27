@@ -1,205 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bougainvillea House Chatbot</title>
-  <style>
-    /* Floating Chat Bubble */
-    #chatbot-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-      font-family: "Poppins", sans-serif;
+<script>
+const GEMINI_API_KEY = "AIzaSyBR85_e6xk8is7aQCY5ckeArtjO9_BT9Kw";
+
+async function sendMessage() {
+    const input = document.getElementById("user-input");
+    const message = input.value.trim();
+    if (!message) return;
+    appendMessage("user", message);
+    input.value = "";
+
+    // 🌐 Add context
+    const context = `
+You are Bougainvillea House Assistant, a virtual guide for visitors.
+Refer to the website https://www.bougainvilleahouse.in/ for accurate info
+about rooms, amenities, WiFi, kitchen, food, parking, and other services.
+Always give friendly, short answers related to that property only.
+If asked something irrelevant, politely say you can only answer about Bougainvillea House.
+    `;
+
+    try {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_API_KEY, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                contents: [
+                    { role: "user", parts: [{ text: context + "\n\nUser: " + message }] }
+                ]
+            })
+        });
+
+        const data = await response.json();
+        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find an answer.";
+        appendMessage("bot", reply);
+    } catch (error) {
+        console.error(error);
+        appendMessage("bot", "Error connecting to Gemini API.");
     }
+}
 
-    #chatbot-label {
-      background: #ffffff;
-      color: #333;
-      padding: 6px 12px;
-      border-radius: 12px;
-      font-size: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      margin-bottom: 6px;
-      text-align: center;
-    }
+function appendMessage(sender, text) {
+    const chatBox = document.getElementById("chat-box");
+    const messageDiv = document.createElement("div");
+    messageDiv.className = sender === "user" ? "user-message" : "bot-message";
+    messageDiv.innerText = text;
+    chatBox.appendChild(messageDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-    #chat-bubble {
-      width: 60px;
-      height: 60px;
-      background-color: #0078ff;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      transition: transform 0.2s ease;
-    }
-
-    #chat-bubble:hover {
-      transform: scale(1.1);
-    }
-
-    #chat-window {
-      display: none;
-      position: fixed;
-      bottom: 90px;
-      right: 20px;
-      width: 320px;
-      height: 420px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      overflow: hidden;
-      flex-direction: column;
-      z-index: 99999;
-    }
-
-    #chat-header {
-      background: #0078ff;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    #chat-box {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-      font-size: 14px;
-    }
-
-    .user-msg {
-      text-align: right;
-      background: #e0f0ff;
-      color: #000;
-      padding: 8px;
-      border-radius: 10px;
-      margin: 6px 0;
-      display: inline-block;
-      max-width: 80%;
-    }
-
-    .bot-msg {
-      text-align: left;
-      background: #f1f1f1;
-      color: #000;
-      padding: 8px;
-      border-radius: 10px;
-      margin: 6px 0;
-      display: inline-block;
-      max-width: 80%;
-    }
-
-    #chat-input {
-      display: flex;
-      border-top: 1px solid #ccc;
-    }
-
-    #user-input {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      outline: none;
-    }
-
-    #send-btn {
-      background: #0078ff;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      cursor: pointer;
-    }
-
-    #send-btn:hover {
-      background: #005fcc;
-    }
-  </style>
-</head>
-<body>
-
-  <div id="chatbot-container">
-    <div id="chatbot-label">💬 Click here to ask your doubts</div>
-    <div id="chat-bubble">💭</div>
-  </div>
-
-  <div id="chat-window">
-    <div id="chat-header">Bougainvillea House Assistant</div>
-    <div id="chat-box"></div>
-    <div id="chat-input">
-      <input id="user-input" type="text" placeholder="Type your question...">
-      <button id="send-btn">Send</button>
-    </div>
-  </div>
-
-  <script>
-    // 🧠 Replace with your real Gemini API key:
-    const GEMINI_API_KEY = "AIzaSyBR85_e6xk8is7aQCY5ckeArtjO9_BT9Kw";
-
-    // Toggle chatbot visibility
-    const chatBubble = document.getElementById("chat-bubble");
-    const chatWindow = document.getElementById("chat-window");
-    chatBubble.onclick = () => {
-      chatWindow.style.display = chatWindow.style.display === "flex" ? "none" : "flex";
-      chatWindow.style.flexDirection = "column";
-    };
-
-    // Send button click
-    document.getElementById("send-btn").addEventListener("click", handleSend);
-
-    // ENTER key press
-    document.getElementById("user-input").addEventListener("keypress", function (event) {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        document.getElementById("send-btn").click();
-      }
-    });
-
-    // Send message to Gemini
-    async function sendToGemini(userMessage) {
-      const response = await fetch(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `Answer only based on this website: https://www.bougainvilleahouse.in/ 
-                User question: ${userMessage}`
-              }]
-            }]
-          }),
-        }
-      );
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find an answer.";
-    }
-
-    async function handleSend() {
-      const input = document.getElementById("user-input");
-      const message = input.value.trim();
-      if (!message) return;
-
-      appendMessage("user", message);
-      input.value = "";
-
-      const reply = await sendToGemini(message);
-      appendMessage("bot", reply);
-    }
-
-    function appendMessage(sender, text) {
-      const chatBox = document.getElementById("chat-box");
-      const msg = document.createElement("div");
-      msg.className = sender === "user" ? "user-msg" : "bot-msg";
-      msg.textContent = text;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-  </script>
-</body>
-</html>
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+document.getElementById("user-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+});
+</script>
