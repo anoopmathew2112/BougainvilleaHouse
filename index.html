@@ -1,19 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bougainvillea Chatbot</title>
-  </head>
-  <body style="text-align:center; background-color:#f9f9f9;">
-    <h2>Bougainvillea Chatbot</h2>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bougainvillea House Chatbot</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f9f9f9;
+    margin: 0; padding: 0;
+  }
+  #chat-container {
+    width: 400px;
+    height: 550px;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    z-index: 9999;
+  }
+  #messages {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+  }
+  .msg { margin: 8px 0; padding: 8px 12px; border-radius: 8px; }
+  .user { background: #ff4081; color: white; align-self: flex-end; }
+  .bot { background: #eee; color: #333; align-self: flex-start; }
+  #input-box {
+    display: flex;
+    border-top: 1px solid #ccc;
+  }
+  #input-box input {
+    flex: 1; border: none; padding: 10px; font-size: 16px;
+  }
+  #input-box button {
+    background: #ff4081; color: white; border: none; padding: 10px 15px;
+    cursor: pointer;
+  }
+  #chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #ff4081;
+    color: white;
+    border-radius: 50%;
+    width: 60px; height: 60px;
+    font-size: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 10000;
+  }
+</style>
+</head>
+<body>
+  <div id="chat-toggle">💬</div>
+  <div id="chat-container" style="display:none;">
+    <div id="messages">
+      <div class="msg bot">👋 Hi! I'm Bougainvillea Assistant. Ask me anything about <a href="https://www.bougainvilleahouse.in" target="_blank">Bougainvillea House</a>.</div>
+    </div>
+    <div id="input-box">
+      <input type="text" id="user-input" placeholder="Type your question...">
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
 
-    <iframe
-      allow="microphone;"
-      width="400"
-      height="500"
-      style="border:none;"
-      src="https://console.dialogflow.com/api-client/demo/embedded/166b9238-8005-4386-af3d-81bbe1aefde8">
-    </iframe>
-  </body>
+<script>
+const GEMINI_API_KEY = "PASTE_YOUR_API_KEY_HERE"; // 🔑 paste your key here
+
+const toggle = document.getElementById("chat-toggle");
+const chatContainer = document.getElementById("chat-container");
+toggle.onclick = () => {
+  chatContainer.style.display = chatContainer.style.display === "none" ? "flex" : "none";
+};
+
+const sendBtn = document.getElementById("send-btn");
+const input = document.getElementById("user-input");
+const messages = document.getElementById("messages");
+
+async function getGeminiReply(prompt) {
+  const context = "You are the Bougainvillea House Assistant. Always answer based on the website https://www.bougainvilleahouse.in/. Be polite, short, and helpful.";
+  const fullPrompt = context + "\n\nUser question: " + prompt;
+  
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=" + AIzaSyBR85_e6xk8is7aQCY5ckeArtjO9_BT9Kw, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: fullPrompt }] }]
+    })
+  });
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn’t understand that.";
+}
+
+sendBtn.onclick = async () => {
+  const userText = input.value.trim();
+  if (!userText) return;
+  addMessage(userText, "user");
+  input.value = "";
+
+  const botReply = await getGeminiReply(userText);
+  addMessage(botReply, "bot");
+};
+
+function addMessage(text, sender) {
+  const msg = document.createElement("div");
+  msg.className = "msg " + sender;
+  msg.innerHTML = text;
+  messages.appendChild(msg);
+  messages.scrollTop = messages.scrollHeight;
+}
+</script>
+</body>
 </html>
