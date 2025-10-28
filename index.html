@@ -7,9 +7,9 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f5f5f5;
       margin: 0;
       height: 100vh;
+      background: #f5f5f5;
     }
 
     #chatbot-container {
@@ -24,14 +24,25 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      z-index: 9999;
     }
 
     #chat-header {
       background: #6200ee;
       color: white;
       padding: 10px;
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-weight: bold;
+      cursor: pointer;
+    }
+
+    #close-btn {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 18px;
       cursor: pointer;
     }
 
@@ -45,6 +56,8 @@
       margin: 8px 0;
       padding: 8px;
       border-radius: 8px;
+      max-width: 80%;
+      word-wrap: break-word;
     }
 
     .user {
@@ -96,6 +109,7 @@
       cursor: pointer;
       font-size: 28px;
       box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 9999;
     }
 
     #tooltip {
@@ -107,6 +121,7 @@
       padding: 6px 12px;
       border-radius: 6px;
       font-size: 13px;
+      z-index: 9999;
     }
 
     #chatbot-container.hidden {
@@ -120,7 +135,10 @@
   <div id="bubble">💬</div>
 
   <div id="chatbot-container" class="hidden">
-    <div id="chat-header">Bougainvillea House Assistant</div>
+    <div id="chat-header">
+      Bougainvillea House Assistant
+      <button id="close-btn">✖</button>
+    </div>
     <div id="chat-box"></div>
     <div id="input-area">
       <input id="userInput" placeholder="Type your question..." />
@@ -129,17 +147,26 @@
   </div>
 
   <script>
-    // Your Apps Script Web App URL
-    const PROXY_URL = "https://script.google.com/macros/s/AKfycbxgbuhv2fha6rjBMlFai-hpAbYkEOFc1dLnnk57FttjSXolS8MdtjxuyKtBJNHr_sw5/exec"; 
+    // 🧠 Replace this with your own Apps Script Web App URL:
+    const PROXY_URL = "https://script.google.com/macros/s/AKfycbxgbuhv2fha6rjBMlFai-hpAbYkEOFc1dLnnk57FttjSXolS8MdtjxuyKtBJNHr_sw5/exec";
 
     const bubble = document.getElementById("bubble");
     const chatbot = document.getElementById("chatbot-container");
     const sendButton = document.getElementById("sendButton");
     const userInput = document.getElementById("userInput");
     const chatBox = document.getElementById("chat-box");
+    const closeBtn = document.getElementById("close-btn");
 
+    // Toggle chatbot visibility
     bubble.addEventListener("click", () => {
-      chatbot.classList.toggle("hidden");
+      chatbot.classList.remove("hidden");
+      bubble.style.display = "none";
+      appendMessage("bot", "👋 Hi! I'm your Bougainvillea House Assistant. How can I help you today?");
+    });
+
+    closeBtn.addEventListener("click", () => {
+      chatbot.classList.add("hidden");
+      bubble.style.display = "flex";
     });
 
     sendButton.addEventListener("click", sendMessage);
@@ -152,7 +179,6 @@
       if (!question) return;
       appendMessage("user", question);
       userInput.value = "";
-
       appendMessage("bot", "Thinking...");
 
       try {
@@ -163,7 +189,11 @@
             contents: [
               {
                 parts: [
-                  { text: `Answer this question based on the content from https://www.bougainvilleahouse.in/: ${question}` }
+                  {
+                    text: `You are the Bougainvillea House Assistant. 
+                    Use the content and details from https://www.bougainvilleahouse.in/
+                    to answer politely and clearly: ${question}`
+                  }
                 ]
               }
             ]
@@ -171,7 +201,10 @@
         });
 
         const data = await response.json();
-        chatBox.lastChild.textContent = data.candidates[0].content.parts[0].text;
+        const botReply =
+          data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+          "Sorry, I couldn’t find an answer. Please try again!";
+        chatBox.lastChild.textContent = botReply;
       } catch (error) {
         chatBox.lastChild.textContent = "⚠️ Network error. Please try again later.";
       }
